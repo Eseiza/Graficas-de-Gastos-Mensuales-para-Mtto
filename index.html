@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Inventario - Control de Acceso</title>
+    <title>Inventario Profesional - Inteligente</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <style>
@@ -21,8 +21,9 @@
         .full-width { grid-column: 1 / -1; }
         label { font-size: 11px; font-weight: 700; color: #64748b; margin-bottom: 4px; }
         input, select, textarea { padding: 10px; border: 1px solid #e2e8f0; border-radius: 6px; }
+        .highlight-input { border: 2px solid var(--user-color); background: #f0f9ff; }
         button { cursor: pointer; border: none; border-radius: 8px; font-weight: bold; transition: 0.3s; }
-        .btn-add { background: var(--user-color); color: white; padding: 15px; width: 100%; margin-bottom: 20px; }
+        .btn-add { background: var(--user-color); color: white; padding: 15px; width: 100%; margin-bottom: 20px; font-size: 16px; }
         .btn-excel { background: #10b981; color: white; flex: 1; padding: 12px; }
         .btn-logout { background: #64748b; color: white; padding: 5px 15px; font-size: 13px; }
         .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
@@ -33,42 +34,54 @@
 <body>
 
 <div id="loginSection" class="login-card">
-    <h2 style="color: #1e293b;">Bienvenido</h2>
+    <h2 style="color: #1e293b;">Inventario</h2>
     <select id="userSelect">
-        <option value="guillermo">Guillermo (Carga de Datos)</option>
-        <option value="admin">Administrador (Acceso Total)</option>
+        <option value="guillermo">Guillermo (Carga)</option>
+        <option value="admin">Administrador</option>
     </select>
     <input type="password" id="passInput" placeholder="Contraseña">
-    <button class="btn-login" onclick="login()">Ingresar al Sistema</button>
+    <button class="btn-login" onclick="login()">Ingresar</button>
 </div>
 
 <div id="mainSection" class="container hidden">
     <div class="header-ui">
         <div>
-            <h2 id="welcomeText" style="margin: 0; font-size: 1.2rem;">Panel de Control</h2>
+            <h2 id="welcomeText" style="margin: 0;">Panel</h2>
             <span id="badge" class="role-badge"></span>
         </div>
         <button class="btn-logout" onclick="logout()">Cerrar Sesión</button>
     </div>
     
     <div class="form-grid">
-        <div class="input-group"><label>Pieza</label><input type="text" id="nombrePieza"></div>
+        <div class="input-group"><label>Nombre Pieza</label><input type="text" id="nombrePieza"></div>
         <div class="input-group"><label>Código</label><input type="text" id="codigoPieza"></div>
         <div class="input-group"><label>N° Factura</label><input type="text" id="numFactura"></div>
         <div class="input-group">
             <label>Estado</label>
             <select id="tipoPieza"><option value="Nueva">Nueva</option><option value="Repuesto">Repuesto</option></select>
         </div>
-        <div class="input-group"><label>Cant.</label><input type="number" id="cantidad"></div>
-        <div class="input-group"><label>Valor Unit.</label><input type="number" id="valor"></div>
+        <div class="input-group"><label>Cantidad</label><input type="number" id="cantidad" value="1"></div>
+        
+        <div class="input-group">
+            <label>Tipo de Precio</label>
+            <select id="modoPrecio" onchange="cambiarEtiquetaPrecio()">
+                <option value="unitario">Precio por Unidad</option>
+                <option value="total">Precio Total (Factura)</option>
+            </select>
+        </div>
+        <div class="input-group">
+            <label id="labelMonto">Monto ($)</label>
+            <input type="number" id="valor" class="highlight-input" placeholder="0.00">
+        </div>
+
         <div class="input-group full-width"><label>Descripción</label><textarea id="descripcion"></textarea></div>
     </div>
     <button class="btn-add" onclick="agregarDato()">REGISTRAR PIEZA</button>
 
     <div id="adminView" class="hidden">
-        <div class="actions" style="display: flex; gap: 10px; margin-bottom: 20px;">
+        <div style="display: flex; gap: 10px; margin-bottom: 20px;">
             <button class="btn-excel" onclick="exportarExcel()">Descargar Excel</button>
-            <button onclick="limpiarTodo()" style="background: #ef4444; color: white; padding: 12px; border-radius: 8px; flex: 0.4;">Limpiar Historial</button>
+            <button onclick="limpiarTodo()" style="background: #ef4444; color: white; padding: 12px; border-radius: 8px;">Borrar Historial</button>
         </div>
         <div class="chart-wrapper"><canvas id="miGrafica"></canvas></div>
         <h4 style="margin-top: 30px;">Comparativa Mensual</h4>
@@ -77,58 +90,60 @@
 </div>
 
 <script>
-    // Variables Globales
     let inventario = JSON.parse(localStorage.getItem('datosInventario')) || [];
     let userActual = null;
     let miGrafica = null;
 
-    const CLAVES = {
-        guillermo: 'carga123',
-        admin: 'admin123'
-    };
+    const CLAVES = { guillermo: 'carga123', admin: 'admin123' };
 
-    // Función de Login
+    function cambiarEtiquetaPrecio() {
+        const modo = document.getElementById('modoPrecio').value;
+        const label = document.getElementById('labelMonto');
+        label.innerText = modo === 'unitario' ? 'Precio por Unidad ($)' : 'Precio Total de Factura ($)';
+    }
+
     function login() {
         const user = document.getElementById('userSelect').value;
         const pass = document.getElementById('passInput').value;
-        
         if (pass === CLAVES[user]) {
             userActual = user;
             document.getElementById('loginSection').classList.add('hidden');
             document.getElementById('mainSection').classList.remove('hidden');
             document.getElementById('welcomeText').innerText = "Hola, " + user;
-
-            const badge = document.getElementById('badge');
-            const adminView = document.getElementById('adminView');
-
             if (user === 'admin') {
-                adminView.classList.remove('hidden');
-                badge.innerText = 'Acceso Total';
-                badge.style.backgroundColor = '#4f46e5';
-                setTimeout(initChart, 100); // Pequeña espera para asegurar que el canvas sea visible
+                document.getElementById('adminView').classList.remove('hidden');
+                document.getElementById('badge').innerText = 'Acceso Total';
+                document.getElementById('badge').style.backgroundColor = '#4f46e5';
+                setTimeout(initChart, 100);
             } else {
-                adminView.classList.add('hidden');
-                badge.innerText = 'Solo Carga';
-                badge.style.backgroundColor = '#0ea5e9';
+                document.getElementById('badge').innerText = 'Solo Carga';
+                document.getElementById('badge').style.backgroundColor = '#0ea5e9';
             }
             actualizarComparador();
-        } else {
-            alert("Contraseña incorrecta.");
-        }
+        } else { alert("Contraseña incorrecta"); }
     }
 
-    function logout() {
-        location.reload();
-    }
+    function logout() { location.reload(); }
 
     function agregarDato() {
         const nombre = document.getElementById('nombrePieza').value;
-        const cant = document.getElementById('cantidad').value;
-        const val = document.getElementById('valor').value;
+        const cant = parseInt(document.getElementById('cantidad').value) || 0;
+        const montoIngresado = parseFloat(document.getElementById('valor').value) || 0;
+        const modo = document.getElementById('modoPrecio').value;
 
-        if (!nombre || !cant || !val) {
-            alert("Completa Pieza, Cantidad y Valor.");
+        if (!nombre || cant <= 0 || montoIngresado <= 0) {
+            alert("Completa los datos de Pieza, Cantidad y Monto.");
             return;
+        }
+
+        let precioUnitario, precioTotal;
+
+        if (modo === 'unitario') {
+            precioUnitario = montoIngresado;
+            precioTotal = precioUnitario * cant;
+        } else {
+            precioTotal = montoIngresado;
+            precioUnitario = precioTotal / cant;
         }
 
         const ahora = new Date();
@@ -141,43 +156,35 @@
             Codigo: document.getElementById('codigoPieza').value,
             Factura: document.getElementById('numFactura').value,
             Estado: document.getElementById('tipoPieza').value,
-            Cantidad: parseInt(cant),
-            Precio_Unit: parseFloat(val),
-            Total: parseInt(cant) * parseFloat(val),
+            Cantidad: cant,
+            Precio_Unit: precioUnitario.toFixed(2),
+            Total: precioTotal.toFixed(2),
+            Modo_Ingreso: modo,
             Descripcion: document.getElementById('descripcion').value
         };
 
         inventario.push(registro);
         localStorage.setItem('datosInventario', JSON.stringify(inventario));
-        alert("¡Guardado!");
+        alert("¡Registro Exitoso!");
         
         if (userActual === 'admin') {
             actualizarGrafica(registro);
             actualizarComparador();
         }
-
-        // Limpiar campos
-        ['nombrePieza', 'codigoPieza', 'numFactura', 'cantidad', 'valor', 'descripcion'].forEach(id => {
-            document.getElementById(id).value = '';
-        });
+        ['nombrePieza', 'codigoPieza', 'numFactura', 'cantidad', 'valor', 'descripcion'].forEach(id => document.getElementById(id).value = (id === 'cantidad' ? '1' : ''));
     }
 
     function initChart() {
-        const canvas = document.getElementById('miGrafica');
-        if (!canvas) return;
-        const ctx = canvas.getContext('2d');
-        
-        if(miGrafica) miGrafica.destroy(); // Evitar duplicados
-
+        const ctx = document.getElementById('miGrafica').getContext('2d');
+        if(miGrafica) miGrafica.destroy();
         miGrafica = new Chart(ctx, {
             type: 'line',
             data: {
                 labels: inventario.map(d => d.Fecha + " " + d.Hora),
                 datasets: [{
-                    label: 'Gastos ($)',
+                    label: 'Inversión ($)',
                     data: inventario.map(d => d.Total),
                     borderColor: '#4f46e5',
-                    backgroundColor: 'rgba(79, 70, 229, 0.1)',
                     fill: true,
                     tension: 0.3
                 }]
@@ -198,7 +205,7 @@
         if(!grid) return;
         grid.innerHTML = '';
         const totales = inventario.reduce((acc, curr) => {
-            acc[curr.Mes] = (acc[curr.Mes] || 0) + curr.Total;
+            acc[curr.Mes] = (acc[curr.Mes] || 0) + parseFloat(curr.Total);
             return acc;
         }, {});
         for (const [mes, dinero] of Object.entries(totales)) {
@@ -207,23 +214,20 @@
     }
 
     function exportarExcel() {
-        if(inventario.length === 0) return alert("No hay datos");
+        if(inventario.length === 0) return;
         const wb = XLSX.utils.book_new();
         const meses = [...new Set(inventario.map(r => r.Mes))];
         meses.forEach(mes => {
             const ws = XLSX.utils.json_to_sheet(inventario.filter(r => r.Mes === mes));
             XLSX.utils.book_append_sheet(wb, ws, mes.toUpperCase());
         });
-        XLSX.writeFile(wb, "Inventario.xlsx");
+        XLSX.writeFile(wb, "Inventario_Calculado.xlsx");
     }
 
     function limpiarTodo() {
-        if(confirm("¿Borrar todo el historial?")) {
-            localStorage.removeItem('datosInventario');
-            location.reload();
-        }
+        if(confirm("¿Borrar todo?")) { localStorage.removeItem('datosInventario'); location.reload(); }
     }
 </script>
-
 </body>
-</html>
+    </html>
+    

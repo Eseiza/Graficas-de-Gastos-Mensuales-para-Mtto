@@ -3,105 +3,156 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gráficas de Gastos Mensuales para Mtto</title>
+    <title>Control de Inventario y Facturación</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <style>
-        body { font-family: 'Segoe UI', sans-serif; background-color: #f8f9fa; display: flex; justify-content: center; padding: 20px; }
-        .card { background: white; padding: 2rem; border-radius: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); width: 100%; max-width: 700px; }
-        h2 { color: #2c3e50; text-align: center; }
-        .input-group { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
-        input { flex: 1; padding: 12px; border: 1px solid #ddd; border-radius: 8px; min-width: 150px; }
-        button { cursor: pointer; border: none; border-radius: 8px; font-weight: 600; transition: 0.3s; }
-        .btn-add { background: #4e73df; color: white; padding: 12px 25px; }
-        .btn-add:hover { background: #2e59d9; }
-        .btn-excel { background: #1cc88a; color: white; width: 100%; padding: 15px; margin-top: 20px; }
-        .btn-excel:hover { background: #17a673; }
-        .btn-clear { background: #e74a3b; color: white; padding: 5px 10px; font-size: 12px; margin-top: 10px; }
+        body { font-family: 'Segoe UI', sans-serif; background-color: #f4f7f6; padding: 20px; color: #333; }
+        .container { max-width: 900px; margin: auto; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
+        h2 { text-align: center; color: #2c3e50; }
+        
+        .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px; }
+        .input-group { display: flex; flex-direction: column; }
+        label { font-size: 14px; font-weight: bold; margin-bottom: 5px; color: #555; }
+        input, select { padding: 10px; border: 1px solid #ddd; border-radius: 6px; outline: none; }
+        input:focus { border-color: #3498db; }
+
+        .actions { display: flex; gap: 10px; margin-bottom: 30px; }
+        button { flex: 1; padding: 12px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; transition: 0.3s; }
+        .btn-add { background: #3498db; color: white; }
+        .btn-excel { background: #27ae60; color: white; }
+        .btn-clear { background: #e74c3c; color: white; flex: 0.3; }
+        button:hover { opacity: 0.9; transform: translateY(-1px); }
+
+        .chart-container { position: relative; height: 300px; margin-top: 20px; }
     </style>
 </head>
 <body>
 
-    <div class="card">
-        <h2>Panel de Control de Datos</h2>
-        
+<div class="container">
+    <h2>Registro de Piezas y Facturación</h2>
+    
+    <div class="form-grid">
         <div class="input-group">
-            <input type="text" id="labelInput" placeholder="Concepto (Ej: Venta)">
-            <input type="number" id="valueInput" placeholder="Monto">
-            <button class="btn-add" onclick="agregarDato()">Agregar Dato</button>
+            <label>Nombre de la Pieza</label>
+            <input type="text" id="nombrePieza" placeholder="Ej: Amortiguador">
         </div>
-
-        <canvas id="miGrafica"></canvas>
-        
-        <button class="btn-excel" onclick="exportarExcel()">Descargar Reporte Excel por Meses</button>
-        <button class="btn-clear" onclick="limpiarDatos()">Borrar Historial</button>
+        <div class="input-group">
+            <label>Código</label>
+            <input type="text" id="codigoPieza" placeholder="Ej: ART-992">
+        </div>
+        <div class="input-group">
+            <label>N° Factura</label>
+            <input type="text" id="numFactura" placeholder="Ej: 0001-234">
+        </div>
+        <div class="input-group">
+            <label>Estado</label>
+            <select id="tipoPieza">
+                <option value="Nueva">Nueva</option>
+                <option value="Repuesto">Repuesto</option>
+            </select>
+        </div>
+        <div class="input-group">
+            <label>Cantidad</label>
+            <input type="number" id="cantidad" placeholder="0">
+        </div>
+        <div class="input-group">
+            <label>Valor Unitario ($)</label>
+            <input type="number" id="valor" placeholder="0.00">
+        </div>
     </div>
 
-    <script>
-        let registrosGlobales = JSON.parse(localStorage.getItem('datosGrafica')) || [];
+    <div class="actions">
+        <button class="btn-add" onclick="agregarDato()">Registrar Pieza</button>
+        <button class="btn-excel" onclick="exportarExcel()">Descargar Excel por Mes</button>
+        <button class="btn-clear" onclick="limpiarTodo()">Borrar Todo</button>
+    </div>
 
-        const ctx = document.getElementById('miGrafica').getContext('2d');
-        const miGrafica = new Chart(ctx, {
-            type: 'line',
-            data: {
-                labels: registrosGlobales.map(r => r.Hora),
-                datasets: [{
-                    label: 'Flujo de Datos',
-                    data: registrosGlobales.map(r => r.Valor),
-                    borderColor: '#4e73df',
-                    backgroundColor: 'rgba(78, 115, 223, 0.1)',
-                    fill: true,
-                    tension: 0.3
-                }]
-            }
+    <div class="chart-container">
+        <canvas id="miGrafica"></canvas>
+    </div>
+</div>
+
+<script>
+    let inventario = JSON.parse(localStorage.getItem('datosInventario')) || [];
+
+    // Inicializar Gráfica
+    const ctx = document.getElementById('miGrafica').getContext('2d');
+    const miGrafica = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: inventario.slice(-7).map(d => d.Pieza), // Muestra las últimas 7 piezas
+            datasets: [{
+                label: 'Inversión por Registro ($)',
+                data: inventario.slice(-7).map(d => d.Total),
+                backgroundColor: '#3498db88',
+                borderColor: '#3498db',
+                borderWidth: 2
+            }]
+        },
+        options: { responsive: true, maintainAspectRatio: false }
+    });
+
+    function agregarDato() {
+        const fields = ['nombrePieza', 'codigoPieza', 'numFactura', 'tipoPieza', 'cantidad', 'valor'];
+        const values = fields.reduce((obj, field) => {
+            obj[field] = document.getElementById(field).value;
+            return obj;
+        }, {});
+
+        if (Object.values(values).some(v => v === "")) return alert("Completa todos los campos");
+
+        const ahora = new Date();
+        const nuevoRegistro = {
+            Mes: ahora.toLocaleString('es-ES', { month: 'long' }),
+            Fecha: ahora.toLocaleDateString(),
+            Hora: ahora.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            Pieza: values.nombrePieza,
+            Codigo: values.codigoPieza,
+            Factura: values.numFactura,
+            Estado: values.tipoPieza,
+            Cantidad: parseInt(values.cantidad),
+            Precio_Unit: parseFloat(values.valor),
+            Total: parseInt(values.cantidad) * parseFloat(values.valor)
+        };
+
+        inventario.push(nuevoRegistro);
+        localStorage.setItem('datosInventario', JSON.stringify(inventario));
+
+        // Actualizar Gráfica
+        miGrafica.data.labels.push(nuevoRegistro.Pieza);
+        miGrafica.data.datasets[0].data.push(nuevoRegistro.Total);
+        if (miGrafica.data.labels.length > 10) {
+            miGrafica.data.labels.shift();
+            miGrafica.data.datasets[0].data.shift();
+        }
+        miGrafica.update();
+
+        // Limpiar inputs
+        fields.forEach(f => document.getElementById(f).value = (f === 'tipoPieza' ? 'Nueva' : ''));
+    }
+
+    function exportarExcel() {
+        if (inventario.length === 0) return alert("No hay datos");
+        const wb = XLSX.utils.book_new();
+        const meses = [...new Set(inventario.map(r => r.Mes))];
+
+        meses.forEach(mes => {
+            const datosMes = inventario.filter(r => r.Mes === mes);
+            const ws = XLSX.utils.json_to_sheet(datosMes);
+            XLSX.utils.book_append_sheet(wb, ws, mes.toUpperCase());
         });
 
-        function agregarDato() {
-            const tag = document.getElementById('labelInput');
-            const val = document.getElementById('valueInput');
-            const ahora = new Date();
+        XLSX.writeFile(wb, "Inventario_Piezas.xlsx");
+    }
 
-            if (tag.value && val.value) {
-                const nuevoRegistro = {
-                    Mes: ahora.toLocaleString('es-ES', { month: 'long' }),
-                    Fecha: ahora.toLocaleDateString(),
-                    Hora: ahora.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-                    Concepto: tag.value,
-                    Valor: parseFloat(val.value)
-                };
-
-                registrosGlobales.push(nuevoRegistro);
-                localStorage.setItem('datosGrafica', JSON.stringify(registrosGlobales));
-
-                // Actualizar visualmente
-                miGrafica.data.labels.push(nuevoRegistro.Hora);
-                miGrafica.data.datasets[0].data.push(nuevoRegistro.Valor);
-                miGrafica.update();
-
-                tag.value = ''; val.value = '';
-            }
+    function limpiarTodo() {
+        if(confirm("¿Eliminar todos los registros permanentemente?")) {
+            localStorage.removeItem('datosInventario');
+            location.reload();
         }
+    }
+</script>
 
-        function exportarExcel() {
-            if (registrosGlobales.length === 0) return alert("No hay datos");
-            const wb = XLSX.utils.book_new();
-            const meses = [...new Set(registrosGlobales.map(r => r.Mes))];
-
-            meses.forEach(mes => {
-                const datosMes = registrosGlobales.filter(r => r.Mes === mes);
-                const ws = XLSX.utils.json_to_sheet(datosMes);
-                XLSX.utils.book_append_sheet(wb, ws, mes.charAt(0).toUpperCase() + mes.slice(1));
-            });
-
-            XLSX.writeFile(wb, "Reporte_General.xlsx");
-        }
-
-        function limpiarDatos() {
-            if(confirm("¿Seguro que quieres borrar todo el historial?")) {
-                localStorage.removeItem('datosGrafica');
-                location.reload();
-            }
-        }
-    </script>
 </body>
 </html>

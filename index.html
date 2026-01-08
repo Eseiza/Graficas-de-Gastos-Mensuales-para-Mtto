@@ -10,31 +10,21 @@
         :root { --admin-color: #4f46e5; --user-color: #0ea5e9; --bg-color: #f1f5f9; }
         body { font-family: 'Segoe UI', sans-serif; background-color: var(--bg-color); padding: 20px; }
         .container { max-width: 1000px; margin: auto; background: white; padding: 25px; border-radius: 15px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); }
-        
-        /* Estilos Login */
         .login-card { max-width: 400px; margin: 100px auto; text-align: center; background: white; padding: 40px; border-radius: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
         .login-card select, .login-card input { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; }
         .btn-login { background: var(--admin-color); color: white; border: none; width: 100%; padding: 12px; border-radius: 8px; font-weight: bold; cursor: pointer; }
-
         .hidden { display: none !important; }
-        
-        /* Interfaz Principal */
         .header-ui { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 2px solid #eee; padding-bottom: 10px; }
         .role-badge { padding: 5px 12px; border-radius: 20px; font-size: 12px; font-weight: bold; color: white; text-transform: uppercase; }
-        
         .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 20px; background: #f8fafc; padding: 20px; border-radius: 10px; }
         .input-group { display: flex; flex-direction: column; }
         .full-width { grid-column: 1 / -1; }
         label { font-size: 11px; font-weight: 700; color: #64748b; margin-bottom: 4px; }
         input, select, textarea { padding: 10px; border: 1px solid #e2e8f0; border-radius: 6px; }
-
-        .actions { display: flex; gap: 10px; margin-bottom: 30px; }
         button { cursor: pointer; border: none; border-radius: 8px; font-weight: bold; transition: 0.3s; }
         .btn-add { background: var(--user-color); color: white; padding: 15px; width: 100%; margin-bottom: 20px; }
         .btn-excel { background: #10b981; color: white; flex: 1; padding: 12px; }
-        .btn-clear { background: #ef4444; color: white; flex: 0.4; padding: 12px; }
         .btn-logout { background: #64748b; color: white; padding: 5px 15px; font-size: 13px; }
-        
         .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
         .stat-card { background: #f8fafc; border: 1px solid #e2e8f0; padding: 15px; border-radius: 8px; text-align: center; }
         .chart-wrapper { height: 300px; margin-top: 20px; }
@@ -44,13 +34,10 @@
 
 <div id="loginSection" class="login-card">
     <h2 style="color: #1e293b;">Bienvenido</h2>
-    <p style="color: #64748b; font-size: 14px;">Selecciona tu usuario para ingresar</p>
-    
     <select id="userSelect">
         <option value="guillermo">Guillermo (Carga de Datos)</option>
         <option value="admin">Administrador (Acceso Total)</option>
     </select>
-    
     <input type="password" id="passInput" placeholder="Contraseña">
     <button class="btn-login" onclick="login()">Ingresar al Sistema</button>
 </div>
@@ -74,67 +61,75 @@
         </div>
         <div class="input-group"><label>Cant.</label><input type="number" id="cantidad"></div>
         <div class="input-group"><label>Valor Unit.</label><input type="number" id="valor"></div>
-        <div class="input-group full-width"><label>Descripción / Observaciones</label><textarea id="descripcion"></textarea></div>
+        <div class="input-group full-width"><label>Descripción</label><textarea id="descripcion"></textarea></div>
     </div>
     <button class="btn-add" onclick="agregarDato()">REGISTRAR PIEZA</button>
 
     <div id="adminView" class="hidden">
-        <h3 style="border-top: 1px solid #eee; padding-top: 20px;">Reportes y Estadísticas</h3>
-        <div class="actions">
-            <button class="btn-excel" onclick="exportarExcel()">Descargar Excel (.xlsx)</button>
-            <button class="btn-clear" onclick="limpiarTodo()">Limpiar Todo el Historial</button>
+        <div class="actions" style="display: flex; gap: 10px; margin-bottom: 20px;">
+            <button class="btn-excel" onclick="exportarExcel()">Descargar Excel</button>
+            <button onclick="limpiarTodo()" style="background: #ef4444; color: white; padding: 12px; border-radius: 8px; flex: 0.4;">Limpiar Historial</button>
         </div>
         <div class="chart-wrapper"><canvas id="miGrafica"></canvas></div>
-        
         <h4 style="margin-top: 30px;">Comparativa Mensual</h4>
         <div id="statsGrid" class="stats-grid"></div>
     </div>
 </div>
 
 <script>
+    // Variables Globales
     let inventario = JSON.parse(localStorage.getItem('datosInventario')) || [];
     let userActual = null;
+    let miGrafica = null;
 
-    // CONFIGURACIÓN DE CLAVES
     const CLAVES = {
-        guillermo: 'carga123', // Contraseña de Guillermo
-        admin: 'admin123'      // Contraseña de Admin
+        guillermo: 'carga123',
+        admin: 'admin123'
     };
 
+    // Función de Login
     function login() {
         const user = document.getElementById('userSelect').value;
         const pass = document.getElementById('passInput').value;
-        const badge = document.getElementById('badge');
-
+        
         if (pass === CLAVES[user]) {
             userActual = user;
             document.getElementById('loginSection').classList.add('hidden');
             document.getElementById('mainSection').classList.remove('hidden');
-            document.getElementById('welcomeText').innerText = Hola, ${user.charAt(0).toUpperCase() + user.slice(1)};
+            document.getElementById('welcomeText').innerText = "Hola, " + user;
+
+            const badge = document.getElementById('badge');
+            const adminView = document.getElementById('adminView');
 
             if (user === 'admin') {
-                document.getElementById('adminView').classList.remove('hidden');
+                adminView.classList.remove('hidden');
                 badge.innerText = 'Acceso Total';
                 badge.style.backgroundColor = '#4f46e5';
-                initChart();
+                setTimeout(initChart, 100); // Pequeña espera para asegurar que el canvas sea visible
             } else {
-                document.getElementById('adminView').classList.add('hidden');
+                adminView.classList.add('hidden');
                 badge.innerText = 'Solo Carga';
                 badge.style.backgroundColor = '#0ea5e9';
             }
             actualizarComparador();
         } else {
-            alert("Contraseña incorrecta para el usuario seleccionado.");
+            alert("Contraseña incorrecta.");
         }
     }
 
-    function logout() { location.reload(); }
+    function logout() {
+        location.reload();
+    }
 
     function agregarDato() {
-        const ids = ['nombrePieza', 'codigoPieza', 'numFactura', 'tipoPieza', 'cantidad', 'valor', 'descripcion'];
-        const v = ids.reduce((obj, id) => { obj[id] = document.getElementById(id).value; return obj; }, {});
+        const nombre = document.getElementById('nombrePieza').value;
+        const cant = document.getElementById('cantidad').value;
+        const val = document.getElementById('valor').value;
 
-        if (!v.nombrePieza || !v.cantidad || !v.valor) return alert("Por favor, completa los campos básicos (Pieza, Cantidad y Valor)");
+        if (!nombre || !cant || !val) {
+            alert("Completa Pieza, Cantidad y Valor.");
+            return;
+        }
 
         const ahora = new Date();
         const registro = {
@@ -142,33 +137,44 @@
             Fecha: ahora.toLocaleDateString(),
             Hora: ahora.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
             Usuario: userActual,
-            Pieza: v.nombrePieza, Codigo: v.codigoPieza, Factura: v.numFactura,
-            Estado: v.tipoPieza, Cantidad: parseInt(v.cantidad),
-            Precio_Unit: parseFloat(v.valor), Total: parseInt(v.cantidad) * parseFloat(v.valor),
-            Descripcion: v.descripcion
+            Pieza: nombre,
+            Codigo: document.getElementById('codigoPieza').value,
+            Factura: document.getElementById('numFactura').value,
+            Estado: document.getElementById('tipoPieza').value,
+            Cantidad: parseInt(cant),
+            Precio_Unit: parseFloat(val),
+            Total: parseInt(cant) * parseFloat(val),
+            Descripcion: document.getElementById('descripcion').value
         };
 
         inventario.push(registro);
         localStorage.setItem('datosInventario', JSON.stringify(inventario));
-        alert("Registro guardado exitosamente.");
+        alert("¡Guardado!");
         
         if (userActual === 'admin') {
             actualizarGrafica(registro);
             actualizarComparador();
         }
-        ids.forEach(id => document.getElementById(id).value = (id === 'tipoPieza' ? 'Nueva' : ''));
+
+        // Limpiar campos
+        ['nombrePieza', 'codigoPieza', 'numFactura', 'cantidad', 'valor', 'descripcion'].forEach(id => {
+            document.getElementById(id).value = '';
+        });
     }
 
-    // Funciones Admin
-    let miGrafica;
     function initChart() {
-        const ctx = document.getElementById('miGrafica').getContext('2d');
+        const canvas = document.getElementById('miGrafica');
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+        
+        if(miGrafica) miGrafica.destroy(); // Evitar duplicados
+
         miGrafica = new Chart(ctx, {
             type: 'line',
             data: {
                 labels: inventario.map(d => d.Fecha + " " + d.Hora),
                 datasets: [{
-                    label: 'Gastos por Registro ($)',
+                    label: 'Gastos ($)',
                     data: inventario.map(d => d.Total),
                     borderColor: '#4f46e5',
                     backgroundColor: 'rgba(79, 70, 229, 0.1)',
@@ -192,31 +198,32 @@
         if(!grid) return;
         grid.innerHTML = '';
         const totales = inventario.reduce((acc, curr) => {
-            if (!acc[curr.Mes]) acc[curr.Mes] = 0;
-            acc[curr.Mes] += curr.Total;
+            acc[curr.Mes] = (acc[curr.Mes] || 0) + curr.Total;
             return acc;
         }, {});
         for (const [mes, dinero] of Object.entries(totales)) {
-            grid.innerHTML += <div class="stat-card"><div class="stat-month">${mes}</div><div class="stat-value">$${dinero.toLocaleString()}</div></div>;
+            grid.innerHTML += `<div class="stat-card"><div class="stat-month">${mes}</div><div class="stat-value">$${dinero.toLocaleString()}</div></div>`;
         }
     }
 
     function exportarExcel() {
+        if(inventario.length === 0) return alert("No hay datos");
         const wb = XLSX.utils.book_new();
         const meses = [...new Set(inventario.map(r => r.Mes))];
         meses.forEach(mes => {
             const ws = XLSX.utils.json_to_sheet(inventario.filter(r => r.Mes === mes));
             XLSX.utils.book_append_sheet(wb, ws, mes.toUpperCase());
         });
-        XLSX.writeFile(wb, "Inventario_General.xlsx");
+        XLSX.writeFile(wb, "Inventario.xlsx");
     }
 
     function limpiarTodo() {
-        if(confirm("¿Estás seguro de eliminar todo el historial de datos?")) {
+        if(confirm("¿Borrar todo el historial?")) {
             localStorage.removeItem('datosInventario');
             location.reload();
         }
     }
 </script>
+
 </body>
 </html>

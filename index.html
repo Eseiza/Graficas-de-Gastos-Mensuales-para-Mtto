@@ -3,95 +3,115 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Control de Inventario y Facturación</title>
+    <title>Sistema de Inventario Profesional</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <style>
-        body { font-family: 'Segoe UI', sans-serif; background-color: #f4f7f6; padding: 20px; color: #333; }
-        .container { max-width: 900px; margin: auto; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
-        h2 { text-align: center; color: #2c3e50; }
+        body { font-family: 'Segoe UI', sans-serif; background-color: #f0f2f5; padding: 20px; }
+        .container { max-width: 1000px; margin: auto; background: white; padding: 25px; border-radius: 15px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
+        h2, h3 { color: #1a202c; text-align: center; }
         
-        .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px; }
+        /* Formulario */
+        .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-bottom: 20px; background: #f8fafc; padding: 20px; border-radius: 10px; }
         .input-group { display: flex; flex-direction: column; }
-        label { font-size: 14px; font-weight: bold; margin-bottom: 5px; color: #555; }
-        input, select { padding: 10px; border: 1px solid #ddd; border-radius: 6px; outline: none; }
-        input:focus { border-color: #3498db; }
+        label { font-size: 12px; font-weight: 700; margin-bottom: 4px; color: #64748b; text-transform: uppercase; }
+        input, select { padding: 10px; border: 1px solid #e2e8f0; border-radius: 6px; font-size: 14px; }
 
+        /* Botones */
         .actions { display: flex; gap: 10px; margin-bottom: 30px; }
-        button { flex: 1; padding: 12px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; transition: 0.3s; }
-        .btn-add { background: #3498db; color: white; }
-        .btn-excel { background: #27ae60; color: white; }
-        .btn-clear { background: #e74c3c; color: white; flex: 0.3; }
-        button:hover { opacity: 0.9; transform: translateY(-1px); }
+        button { flex: 1; padding: 12px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; transition: 0.2s; }
+        .btn-add { background: #4f46e5; color: white; }
+        .btn-excel { background: #10b981; color: white; }
+        .btn-clear { background: #ef4444; color: white; flex: 0.4; }
+        button:hover { opacity: 0.9; }
 
-        .chart-container { position: relative; height: 300px; margin-top: 20px; }
+        /* Comparador Mensual */
+        .comparador { margin-top: 30px; padding-top: 20px; border-top: 2px solid #edf2f7; }
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; margin-top: 15px; }
+        .stat-card { background: #fff; border: 1px solid #e2e8f0; padding: 15px; border-radius: 8px; text-align: center; }
+        .stat-month { font-size: 12px; color: #64748b; font-weight: bold; text-transform: uppercase; }
+        .stat-value { font-size: 18px; color: #1e293b; font-weight: 800; margin-top: 5px; }
+
+        .chart-wrapper { height: 350px; margin-top: 20px; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h2>Registro de Piezas y Facturación</h2>
+    <h2>Control de Piezas y Facturación</h2>
     
     <div class="form-grid">
-        <div class="input-group">
-            <label>Nombre de la Pieza</label>
-            <input type="text" id="nombrePieza" placeholder="Ej: Amortiguador">
-        </div>
-        <div class="input-group">
-            <label>Código</label>
-            <input type="text" id="codigoPieza" placeholder="Ej: ART-992">
-        </div>
-        <div class="input-group">
-            <label>N° Factura</label>
-            <input type="text" id="numFactura" placeholder="Ej: 0001-234">
-        </div>
+        <div class="input-group"><label>Pieza</label><input type="text" id="nombrePieza"></div>
+        <div class="input-group"><label>Código</label><input type="text" id="codigoPieza"></div>
+        <div class="input-group"><label>N° Factura</label><input type="text" id="numFactura"></div>
         <div class="input-group">
             <label>Estado</label>
-            <select id="tipoPieza">
-                <option value="Nueva">Nueva</option>
-                <option value="Repuesto">Repuesto</option>
-            </select>
+            <select id="tipoPieza"><option value="Nueva">Nueva</option><option value="Repuesto">Repuesto</option></select>
         </div>
-        <div class="input-group">
-            <label>Cantidad</label>
-            <input type="number" id="cantidad" placeholder="0">
-        </div>
-        <div class="input-group">
-            <label>Valor Unitario ($)</label>
-            <input type="number" id="valor" placeholder="0.00">
-        </div>
+        <div class="input-group"><label>Cant.</label><input type="number" id="cantidad"></div>
+        <div class="input-group"><label>Valor Unit.</label><input type="number" id="valor"></div>
     </div>
 
     <div class="actions">
-        <button class="btn-add" onclick="agregarDato()">Registrar Pieza</button>
-        <button class="btn-excel" onclick="exportarExcel()">Descargar Excel por Mes</button>
-        <button class="btn-clear" onclick="limpiarTodo()">Borrar Todo</button>
+        <button class="btn-add" onclick="agregarDato()">Registrar</button>
+        <button class="btn-excel" onclick="exportarExcel()">Exportar Excel</button>
+        <button class="btn-clear" onclick="limpiarTodo()">Limpiar</button>
     </div>
 
-    <div class="chart-container">
+    <div class="chart-wrapper">
         <canvas id="miGrafica"></canvas>
+    </div>
+
+    <div class="comparador">
+        <h3>Comparativa de Gastos por Mes</h3>
+        <div id="statsGrid" class="stats-grid">
+            </div>
     </div>
 </div>
 
 <script>
     let inventario = JSON.parse(localStorage.getItem('datosInventario')) || [];
 
-    // Inicializar Gráfica
+    // Inicializar Gráfica Lineal
     const ctx = document.getElementById('miGrafica').getContext('2d');
     const miGrafica = new Chart(ctx, {
-        type: 'bar',
+        type: 'line',
         data: {
-            labels: inventario.slice(-7).map(d => d.Pieza), // Muestra las últimas 7 piezas
+            labels: inventario.map(d => d.Fecha + " " + d.Hora),
             datasets: [{
-                label: 'Inversión por Registro ($)',
-                data: inventario.slice(-7).map(d => d.Total),
-                backgroundColor: '#3498db88',
-                borderColor: '#3498db',
-                borderWidth: 2
+                label: 'Inversión Total por Registro ($)',
+                data: inventario.map(d => d.Total),
+                borderColor: '#4f46e5',
+                backgroundColor: 'rgba(79, 70, 229, 0.1)',
+                borderWidth: 3,
+                fill: true,
+                tension: 0.4,
+                pointRadius: 4
             }]
         },
         options: { responsive: true, maintainAspectRatio: false }
     });
+
+    function actualizarComparador() {
+        const grid = document.getElementById('statsGrid');
+        grid.innerHTML = '';
+
+        // Agrupar totales por mes
+        const totalesPorMes = inventario.reduce((acc, curr) => {
+            acc[curr.Mes] = (acc[curr.Mes] || 0) + curr.Total;
+            return acc;
+        }, {});
+
+        for (const [mes, total] of Object.entries(totalesPorMes)) {
+            const card = document.createElement('div');
+            card.className = 'stat-card';
+            card.innerHTML = `
+                <div class="stat-month">${mes}</div>
+                <div class="stat-value">$${total.toLocaleString()}</div>
+            `;
+            grid.appendChild(card);
+        }
+    }
 
     function agregarDato() {
         const fields = ['nombrePieza', 'codigoPieza', 'numFactura', 'tipoPieza', 'cantidad', 'valor'];
@@ -100,10 +120,10 @@
             return obj;
         }, {});
 
-        if (Object.values(values).some(v => v === "")) return alert("Completa todos los campos");
+        if (Object.values(values).some(v => v === "")) return alert("Faltan datos");
 
         const ahora = new Date();
-        const nuevoRegistro = {
+        const nuevo = {
             Mes: ahora.toLocaleString('es-ES', { month: 'long' }),
             Fecha: ahora.toLocaleDateString(),
             Hora: ahora.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
@@ -116,43 +136,37 @@
             Total: parseInt(values.cantidad) * parseFloat(values.valor)
         };
 
-        inventario.push(nuevoRegistro);
+        inventario.push(nuevo);
         localStorage.setItem('datosInventario', JSON.stringify(inventario));
 
         // Actualizar Gráfica
-        miGrafica.data.labels.push(nuevoRegistro.Pieza);
-        miGrafica.data.datasets[0].data.push(nuevoRegistro.Total);
-        if (miGrafica.data.labels.length > 10) {
-            miGrafica.data.labels.shift();
-            miGrafica.data.datasets[0].data.shift();
-        }
+        miGrafica.data.labels.push(nuevo.Fecha + " " + nuevo.Hora);
+        miGrafica.data.datasets[0].data.push(nuevo.Total);
         miGrafica.update();
+        
+        actualizarComparador();
 
-        // Limpiar inputs
+        // Limpiar
         fields.forEach(f => document.getElementById(f).value = (f === 'tipoPieza' ? 'Nueva' : ''));
     }
 
     function exportarExcel() {
-        if (inventario.length === 0) return alert("No hay datos");
+        if (inventario.length === 0) return;
         const wb = XLSX.utils.book_new();
         const meses = [...new Set(inventario.map(r => r.Mes))];
-
         meses.forEach(mes => {
-            const datosMes = inventario.filter(r => r.Mes === mes);
-            const ws = XLSX.utils.json_to_sheet(datosMes);
+            const ws = XLSX.utils.json_to_sheet(inventario.filter(r => r.Mes === mes));
             XLSX.utils.book_append_sheet(wb, ws, mes.toUpperCase());
         });
-
-        XLSX.writeFile(wb, "Inventario_Piezas.xlsx");
+        XLSX.writeFile(wb, "Reporte_Inventario.xlsx");
     }
 
     function limpiarTodo() {
-        if(confirm("¿Eliminar todos los registros permanentemente?")) {
-            localStorage.removeItem('datosInventario');
-            location.reload();
-        }
+        if(confirm("¿Borrar todo?")) { localStorage.removeItem('datosInventario'); location.reload(); }
     }
-</script>
 
+    // Cargar comparador al iniciar
+    actualizarComparador();
+</script>
 </body>
 </html>

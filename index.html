@@ -3,155 +3,185 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistema de Inventario Profesional</title>
+    <title>Inventario con Control de Acceso</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <style>
-        body { font-family: 'Segoe UI', sans-serif; background-color: #f0f2f5; padding: 20px; }
-        .container { max-width: 1000px; margin: auto; background: white; padding: 25px; border-radius: 15px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
-        h2, h3 { color: #1a202c; text-align: center; }
+        :root { --admin-color: #4f46e5; --op-color: #0ea5e9; }
+        body { font-family: 'Segoe UI', sans-serif; background-color: #f1f5f9; padding: 20px; }
+        .container { max-width: 1000px; margin: auto; background: white; padding: 25px; border-radius: 15px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); }
         
-        /* Formulario */
-        .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-bottom: 20px; background: #f8fafc; padding: 20px; border-radius: 10px; }
+        /* Login Simple */
+        .login-box { text-align: center; padding: 40px; }
+        .hidden { display: none !important; }
+        
+        /* Diseño */
+        .header-ui { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 2px solid #eee; padding-bottom: 10px; }
+        .role-badge { padding: 5px 12px; border-radius: 20px; font-size: 12px; font-weight: bold; color: white; }
+        
+        .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 20px; background: #f8fafc; padding: 20px; border-radius: 10px; }
         .input-group { display: flex; flex-direction: column; }
-        label { font-size: 12px; font-weight: 700; margin-bottom: 4px; color: #64748b; text-transform: uppercase; }
-        input, select { padding: 10px; border: 1px solid #e2e8f0; border-radius: 6px; font-size: 14px; }
+        .full-width { grid-column: 1 / -1; }
+        label { font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase; }
+        input, select, textarea { padding: 10px; border: 1px solid #e2e8f0; border-radius: 6px; }
 
-        /* Botones */
         .actions { display: flex; gap: 10px; margin-bottom: 30px; }
-        button { flex: 1; padding: 12px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; transition: 0.2s; }
-        .btn-add { background: #4f46e5; color: white; }
+        button { flex: 1; padding: 12px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; }
+        .btn-add { background: var(--op-color); color: white; }
         .btn-excel { background: #10b981; color: white; }
-        .btn-clear { background: #ef4444; color: white; flex: 0.4; }
-        button:hover { opacity: 0.9; }
-
-        /* Comparador Mensual */
-        .comparador { margin-top: 30px; padding-top: 20px; border-top: 2px solid #edf2f7; }
-        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; margin-top: 15px; }
-        .stat-card { background: #fff; border: 1px solid #e2e8f0; padding: 15px; border-radius: 8px; text-align: center; }
-        .stat-month { font-size: 12px; color: #64748b; font-weight: bold; text-transform: uppercase; }
-        .stat-value { font-size: 18px; color: #1e293b; font-weight: 800; margin-top: 5px; }
-
-        .chart-wrapper { height: 350px; margin-top: 20px; }
+        .btn-logout { background: #64748b; color: white; flex: 0.2; }
+        
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
+        .stat-card { background: #f8fafc; border: 1px solid #e2e8f0; padding: 15px; border-radius: 8px; text-align: center; }
+        .chart-wrapper { height: 300px; margin-top: 20px; }
     </style>
 </head>
 <body>
 
-<div class="container">
-    <h2>Control de Piezas y Facturación</h2>
+<div id="loginSection" class="container login-box">
+    <h2>Sistema de Inventario</h2>
+    <p>Ingresa la clave para acceder</p>
+    <input type="password" id="passInput" placeholder="Clave de acceso" style="margin-bottom: 10px;"><br>
+    <button onclick="login()" style="background: #4f46e5; color: white; max-width: 200px;">Entrar</button>
+    <p style="font-size: 12px; color: #94a3b8; margin-top: 20px;">Admin: admin123 | Operador: op123</p>
+</div>
+
+<div id="mainSection" class="container hidden">
+    <div class="header-ui">
+        <h2>Panel de Inventario</h2>
+        <div id="badge" class="role-badge"></div>
+        <button class="btn-logout" onclick="logout()">Salir</button>
+    </div>
     
     <div class="form-grid">
         <div class="input-group"><label>Pieza</label><input type="text" id="nombrePieza"></div>
         <div class="input-group"><label>Código</label><input type="text" id="codigoPieza"></div>
-        <div class="input-group"><label>N° Factura</label><input type="text" id="numFactura"></div>
+        <div class="input-group"><label>Factura</label><input type="text" id="numFactura"></div>
         <div class="input-group">
             <label>Estado</label>
             <select id="tipoPieza"><option value="Nueva">Nueva</option><option value="Repuesto">Repuesto</option></select>
         </div>
         <div class="input-group"><label>Cant.</label><input type="number" id="cantidad"></div>
         <div class="input-group"><label>Valor Unit.</label><input type="number" id="valor"></div>
+        <div class="input-group full-width"><label>Descripción</label><textarea id="descripcion"></textarea></div>
     </div>
+    <button class="btn-add" style="width: 100%; margin-bottom: 30px;" onclick="agregarDato()">Registrar Pieza</button>
 
-    <div class="actions">
-        <button class="btn-add" onclick="agregarDato()">Registrar</button>
-        <button class="btn-excel" onclick="exportarExcel()">Exportar Excel</button>
-        <button class="btn-clear" onclick="limpiarTodo()">Limpiar</button>
-    </div>
-
-    <div class="chart-wrapper">
-        <canvas id="miGrafica"></canvas>
-    </div>
-
-    <div class="comparador">
-        <h3>Comparativa de Gastos por Mes</h3>
-        <div id="statsGrid" class="stats-grid">
-            </div>
+    <div id="adminView" class="hidden">
+        <div class="actions">
+            <button class="btn-excel" onclick="exportarExcel()">Exportar Reporte Excel</button>
+            <button onclick="limpiarTodo()" style="background: #ef4444; color: white;">Limpiar Todo</button>
+        </div>
+        <div class="chart-wrapper"><canvas id="miGrafica"></canvas></div>
+        <h3 style="margin-top: 30px;">Comparativa Mensual</h3>
+        <div id="statsGrid" class="stats-grid"></div>
     </div>
 </div>
 
 <script>
     let inventario = JSON.parse(localStorage.getItem('datosInventario')) || [];
+    let currentUser = null;
 
-    // Inicializar Gráfica Lineal
-    const ctx = document.getElementById('miGrafica').getContext('2d');
-    const miGrafica = new Chart(ctx, {
-        type: 'line',
-        data: {
-            labels: inventario.map(d => d.Fecha + " " + d.Hora),
-            datasets: [{
-                label: 'Inversión Total por Registro ($)',
-                data: inventario.map(d => d.Total),
-                borderColor: '#4f46e5',
-                backgroundColor: 'rgba(79, 70, 229, 0.1)',
-                borderWidth: 3,
-                fill: true,
-                tension: 0.4,
-                pointRadius: 4
-            }]
-        },
-        options: { responsive: true, maintainAspectRatio: false }
-    });
+    function login() {
+        const pass = document.getElementById('passInput').value;
+        const loginSec = document.getElementById('loginSection');
+        const mainSec = document.getElementById('mainSection');
+        const adminView = document.getElementById('adminView');
+        const badge = document.getElementById('badge');
 
-    function actualizarComparador() {
-        const grid = document.getElementById('statsGrid');
-        grid.innerHTML = '';
-
-        // Agrupar totales por mes
-        const totalesPorMes = inventario.reduce((acc, curr) => {
-            acc[curr.Mes] = (acc[curr.Mes] || 0) + curr.Total;
-            return acc;
-        }, {});
-
-        for (const [mes, total] of Object.entries(totalesPorMes)) {
-            const card = document.createElement('div');
-            card.className = 'stat-card';
-            card.innerHTML = `
-                <div class="stat-month">${mes}</div>
-                <div class="stat-value">$${total.toLocaleString()}</div>
-            `;
-            grid.appendChild(card);
+        if (pass === 'admin123') {
+            currentUser = 'admin';
+            adminView.classList.remove('hidden');
+            badge.innerText = 'ADMINISTRADOR';
+            badge.style.backgroundColor = '#4f46e5';
+        } else if (pass === 'op123') {
+            currentUser = 'operador';
+            adminView.classList.add('hidden');
+            badge.innerText = 'OPERADOR';
+            badge.style.backgroundColor = '#0ea5e9';
+        } else {
+            return alert("Clave incorrecta");
         }
+
+        loginSec.classList.add('hidden');
+        mainSec.classList.remove('hidden');
+        if(currentUser === 'admin') initChart();
+        actualizarComparador();
     }
 
-    function agregarDato() {
-        const fields = ['nombrePieza', 'codigoPieza', 'numFactura', 'tipoPieza', 'cantidad', 'valor'];
-        const values = fields.reduce((obj, field) => {
-            obj[field] = document.getElementById(field).value;
-            return obj;
-        }, {});
+    function logout() { location.reload(); }
 
-        if (Object.values(values).some(v => v === "")) return alert("Faltan datos");
+    // --- LÓGICA DE DATOS (Misma que antes) ---
+    function agregarDato() {
+        const ids = ['nombrePieza', 'codigoPieza', 'numFactura', 'tipoPieza', 'cantidad', 'valor', 'descripcion'];
+        const v = ids.reduce((obj, id) => { obj[id] = document.getElementById(id).value; return obj; }, {});
+
+        if (!v.nombrePieza || !v.cantidad || !v.valor) return alert("Faltan datos");
 
         const ahora = new Date();
-        const nuevo = {
+        const registro = {
             Mes: ahora.toLocaleString('es-ES', { month: 'long' }),
             Fecha: ahora.toLocaleDateString(),
             Hora: ahora.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-            Pieza: values.nombrePieza,
-            Codigo: values.codigoPieza,
-            Factura: values.numFactura,
-            Estado: values.tipoPieza,
-            Cantidad: parseInt(values.cantidad),
-            Precio_Unit: parseFloat(values.valor),
-            Total: parseInt(values.cantidad) * parseFloat(values.valor)
+            Pieza: v.nombrePieza, Codigo: v.codigoPieza, Factura: v.numFactura,
+            Estado: v.tipoPieza, Cantidad: parseInt(v.cantidad),
+            Precio_Unit: parseFloat(v.valor), Total: parseInt(v.cantidad) * parseFloat(v.valor),
+            Descripcion: v.descripcion
         };
 
-        inventario.push(nuevo);
+        inventario.push(registro);
         localStorage.setItem('datosInventario', JSON.stringify(inventario));
-
-        // Actualizar Gráfica
-        miGrafica.data.labels.push(nuevo.Fecha + " " + nuevo.Hora);
-        miGrafica.data.datasets[0].data.push(nuevo.Total);
-        miGrafica.update();
+        alert("¡Pieza registrada con éxito!");
         
-        actualizarComparador();
+        if (currentUser === 'admin') {
+            actualizarGrafica(registro);
+            actualizarComparador();
+        }
+        ids.forEach(id => document.getElementById(id).value = (id === 'tipoPieza' ? 'Nueva' : ''));
+    }
 
-        // Limpiar
-        fields.forEach(f => document.getElementById(f).value = (f === 'tipoPieza' ? 'Nueva' : ''));
+    // --- FUNCIONES DE VISUALIZACIÓN ---
+    let miGrafica;
+    function initChart() {
+        const ctx = document.getElementById('miGrafica').getContext('2d');
+        miGrafica = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: inventario.map(d => d.Fecha + " " + d.Hora),
+                datasets: [{
+                    label: 'Gastos ($)',
+                    data: inventario.map(d => d.Total),
+                    borderColor: '#4f46e5',
+                    fill: true,
+                    tension: 0.3
+                }]
+            },
+            options: { responsive: true, maintainAspectRatio: false }
+        });
+    }
+
+    function actualizarGrafica(reg) {
+        if(!miGrafica) return;
+        miGrafica.data.labels.push(reg.Fecha + " " + reg.Hora);
+        miGrafica.data.datasets[0].data.push(reg.Total);
+        miGrafica.update();
+    }
+
+    function actualizarComparador() {
+        const grid = document.getElementById('statsGrid');
+        if(!grid) return;
+        grid.innerHTML = '';
+        const totales = inventario.reduce((acc, curr) => {
+            if (!acc[curr.Mes]) acc[curr.Mes] = 0;
+            acc[curr.Mes] += curr.Total;
+            return acc;
+        }, {});
+        for (const [mes, dinero] of Object.entries(totales)) {
+            grid.innerHTML += <div class="stat-card"><div class="stat-month">${mes}</div><div class="stat-value">$${dinero.toLocaleString()}</div></div>;
+        }
     }
 
     function exportarExcel() {
-        if (inventario.length === 0) return;
         const wb = XLSX.utils.book_new();
         const meses = [...new Set(inventario.map(r => r.Mes))];
         meses.forEach(mes => {
@@ -164,9 +194,6 @@
     function limpiarTodo() {
         if(confirm("¿Borrar todo?")) { localStorage.removeItem('datosInventario'); location.reload(); }
     }
-
-    // Cargar comparador al iniciar
-    actualizarComparador();
 </script>
 </body>
 </html>

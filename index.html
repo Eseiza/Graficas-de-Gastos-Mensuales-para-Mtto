@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gráficas de Gastos Mensuales para Mtto</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background-color: #f8f9fa; display: flex; justify-content: center; padding: 20px; }
+        .card { background: white; padding: 2rem; border-radius: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); width: 100%; max-width: 700px; }
+        h2 { color: #2c3e50; text-align: center; }
+        .input-group { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
+        input { flex: 1; padding: 12px; border: 1px solid #ddd; border-radius: 8px; min-width: 150px; }
+        button { cursor: pointer; border: none; border-radius: 8px; font-weight: 600; transition: 0.3s; }
+        .btn-add { background: #4e73df; color: white; padding: 12px 25px; }
+        .btn-add:hover { background: #2e59d9; }
+        .btn-excel { background: #1cc88a; color: white; width: 100%; padding: 15px; margin-top: 20px; }
+        .btn-excel:hover { background: #17a673; }
+        .btn-clear { background: #e74a3b; color: white; padding: 5px 10px; font-size: 12px; margin-top: 10px; }
+    </style>
+</head>
+<body>
+
+    <div class="card">
+        <h2>Panel de Control de Datos</h2>
+        
+        <div class="input-group">
+            <input type="text" id="labelInput" placeholder="Concepto (Ej: Venta)">
+            <input type="number" id="valueInput" placeholder="Monto">
+            <button class="btn-add" onclick="agregarDato()">Agregar Dato</button>
+        </div>
+
+        <canvas id="miGrafica"></canvas>
+        
+        <button class="btn-excel" onclick="exportarExcel()">Descargar Reporte Excel por Meses</button>
+        <button class="btn-clear" onclick="limpiarDatos()">Borrar Historial</button>
+    </div>
+
+    <script>
+        let registrosGlobales = JSON.parse(localStorage.getItem('datosGrafica')) || [];
+
+        const ctx = document.getElementById('miGrafica').getContext('2d');
+        const miGrafica = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: registrosGlobales.map(r => r.Hora),
+                datasets: [{
+                    label: 'Flujo de Datos',
+                    data: registrosGlobales.map(r => r.Valor),
+                    borderColor: '#4e73df',
+                    backgroundColor: 'rgba(78, 115, 223, 0.1)',
+                    fill: true,
+                    tension: 0.3
+                }]
+            }
+        });
+
+        function agregarDato() {
+            const tag = document.getElementById('labelInput');
+            const val = document.getElementById('valueInput');
+            const ahora = new Date();
+
+            if (tag.value && val.value) {
+                const nuevoRegistro = {
+                    Mes: ahora.toLocaleString('es-ES', { month: 'long' }),
+                    Fecha: ahora.toLocaleDateString(),
+                    Hora: ahora.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                    Concepto: tag.value,
+                    Valor: parseFloat(val.value)
+                };
+
+                registrosGlobales.push(nuevoRegistro);
+                localStorage.setItem('datosGrafica', JSON.stringify(registrosGlobales));
+
+                // Actualizar visualmente
+                miGrafica.data.labels.push(nuevoRegistro.Hora);
+                miGrafica.data.datasets[0].data.push(nuevoRegistro.Valor);
+                miGrafica.update();
+
+                tag.value = ''; val.value = '';
+            }
+        }
+
+        function exportarExcel() {
+            if (registrosGlobales.length === 0) return alert("No hay datos");
+            const wb = XLSX.utils.book_new();
+            const meses = [...new Set(registrosGlobales.map(r => r.Mes))];
+
+            meses.forEach(mes => {
+                const datosMes = registrosGlobales.filter(r => r.Mes === mes);
+                const ws = XLSX.utils.json_to_sheet(datosMes);
+                XLSX.utils.book_append_sheet(wb, ws, mes.charAt(0).toUpperCase() + mes.slice(1));
+            });
+
+            XLSX.writeFile(wb, "Reporte_General.xlsx");
+        }
+
+        function limpiarDatos() {
+            if(confirm("¿Seguro que quieres borrar todo el historial?")) {
+                localStorage.removeItem('datosGrafica');
+                location.reload();
+            }
+        }
+    </script>
+</body>
+</html>

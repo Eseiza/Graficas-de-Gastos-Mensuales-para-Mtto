@@ -36,8 +36,8 @@
 <div id="loginSection" class="login-card">
     <h2 style="color: #1e293b;">Registro Gastos</h2>
     <select id="userSelect">
-        <option value="Guillermo">Guillermo (Carga)</option>
-        <option value="Admin">Administrador</option>
+        <option value="guillermo">Guillermo (Carga)</option>
+        <option value="admin">Administrador</option>
     </select>
     <input type="password" id="passInput" placeholder="Contraseña">
     <button class="btn-login" onclick="login()">Ingresar</button>
@@ -94,7 +94,7 @@
     let userActual = null;
     let miGrafica = null;
 
-    const CLAVES = { Guillermo: 'Guillermo123456', Admin: 'Admin123456' };
+    const CLAVES = { guillermo: 'Guillermo123456', admin: 'Admin123456' };
 
     function cambiarEtiquetaPrecio() {
         const modo = document.getElementById('modoPrecio').value;
@@ -110,7 +110,7 @@
             document.getElementById('loginSection').classList.add('hidden');
             document.getElementById('mainSection').classList.remove('hidden');
             document.getElementById('welcomeText').innerText = "Hola, " + user;
-            if (user === 'Admin') {
+            if (user === 'admin') {
                 document.getElementById('adminView').classList.remove('hidden');
                 document.getElementById('badge').innerText = 'Acceso Total';
                 document.getElementById('badge').style.backgroundColor = '#4f46e5';
@@ -231,6 +231,7 @@
 </body>
     </html>
     
+
 
 
 
